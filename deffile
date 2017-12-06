@@ -1,0 +1,27 @@
+LIBRARY
+EXPORTS
+	Allocate @1
+	BlankBuffers @2
+	Configure @3
+	DirtyRect @4
+	DllMain @5
+	Free @6
+	GDIPause @7
+	GDIResume @8
+	GetDisplayMode @9
+	GetDisplayModeList @10	
+	GetMainWindow @11
+	Initialize @12
+	LockBuffer @13		
+	PageFlip @14			
+	Pause @15			
+	RasterizerHook @16		
+	Restore @17			
+	Resume @18			
+	Save @19			
+	SetDisplayMode @20		
+	SetPaletteRange @21		
+	Shutdown @22			
+	Startup @23			
+	Terminate @24			
+	UnlockBuffer @25
