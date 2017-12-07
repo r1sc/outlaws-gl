@@ -21,15 +21,18 @@
     <ClCompile Include="lecinterface.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="glrenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="RendererInterface.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="RendererStructs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glrenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,13 +1,6 @@
 #pragma once
 
-typedef struct
-{
-	unsigned int width;
-	unsigned int height;
-	unsigned int bpp;
-	unsigned char unk[24];
-} t_SetDisplayModeArgs;
-
+#include <Windows.h>
 
 typedef struct {
 	int action;
@@ -33,13 +26,18 @@ typedef struct {
 #pragma pack(push, 1)
 typedef struct
 {
-	void* pixelData;
-	int dword4 = 1024;
+	unsigned short* pixelData;
+	int stride = 1024;
 	int height;
-	int dwordC = 2;
+	int bytesPerPixel = 2;
 	int dword10 = 0;
 	int dword14 = 0;
 	unsigned int bufferWidth;
 	unsigned int bufferHeight;
 } t_LockBufferArgs;
 #pragma pack(pop)
+
+typedef struct {
+	HWND hWnd;
+	int unk;
+} t_InitializeArgs;
