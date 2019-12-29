@@ -17,4 +17,5 @@ void ResetVideo();
 
 int AllocateTexture(t_AllocateTextureQuery t);
 int AddTexture(t_AddTexture input);
+int RemoveTexture(unsigned int* textureTag);
 void Render3d(t_Render3dInput input);

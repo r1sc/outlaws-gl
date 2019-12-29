@@ -40,15 +40,11 @@ void SetPixelFormatAndCreateContext(HWND hWnd) {
 
 	ourOpenGLRenderingContext = wglCreateContext(ourWindowHandleToDeviceContext);
 	wglMakeCurrent(ourWindowHandleToDeviceContext, ourOpenGLRenderingContext);
-
-
 }
 
 void AllocatePixelBuffer(unsigned int width, unsigned int height, int bytesPerPixel) {
 	textureBytesPerPixel = 1;
 	video_Buffer = (unsigned char*)malloc(width * height * bytesPerPixel);
-
-	//glOrtho(0, 1, 1, 0, -1, 1);
 
 	glGenTextures(1, &video_ScreenTexture);
 	glGenTextures(256, textures);
@@ -56,6 +52,7 @@ void AllocatePixelBuffer(unsigned int width, unsigned int height, int bytesPerPi
 
 void ResetVideo() {
 	glEnable(GL_TEXTURE_2D);
+	glDisable(GL_CULL_FACE);
 
 	glBindTexture(GL_TEXTURE_2D, video_ScreenTexture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, currentDisplayMode.width, currentDisplayMode.height, 0, GL_COLOR_INDEX, GL_UNSIGNED_BYTE, NULL);
@@ -72,13 +69,10 @@ void ResetVideo() {
 }
 
 void DrawPixelBuffer() {
-	glColor3f(1, 1, 1);
-	glEnable(GL_TEXTURE_2D);
-	glDisable(GL_CULL_FACE);
-
 	glBindTexture(GL_TEXTURE_2D, video_ScreenTexture);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, currentDisplayMode.width, currentDisplayMode.height, GL_COLOR_INDEX, GL_UNSIGNED_BYTE, video_Buffer);
 
+	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_ALPHA_TEST);
 	glAlphaFunc(GL_GREATER, 0);
 	glBegin(GL_QUADS);
@@ -116,7 +110,6 @@ int AllocateTexture(t_AllocateTextureQuery input) {
 }
 
 int AddTexture(t_AddTexture input) {
-	
 	for (size_t i = 0; i < 256; i++)
 	{
 		GLuint index = (nextFree + i) % 256;
@@ -131,38 +124,27 @@ int AddTexture(t_AddTexture input) {
 			*input.textureTag = index;
 			usedTextures[index] = true;
 			nextFree = (index + 1) % 256;
-			return index;
+			return 0;
 		}
 	}
 
 	return 0;
 }
 
+int RemoveTexture(unsigned int* textureTag) {
+	usedTextures[*textureTag] = false;
+	return 0;
+}
+
 void drawVertex(t_Vertex* v) {
-	float oow = v->oow;
-	float w =  1.0f / v->z;
-	float sow = v->s;
-	float tow = v->t;
-
-
-	if (v->x == 0) {
-		sow = sow * oow;
-		tow = tow * oow;
-		v->x = 1;
-	}
-
-	float s = w * sow;
-	float t = w * tow;
-
-		
-	glTexCoord2f(v->s, v->t);
+	float s = v->s * v->w; //sow / w;
+	float t = v->t * v->w;
+			
+	glTexCoord4f(s, t, 0, v->w);
 	glVertex3f(v->x, v->y, -v->z);
 }
 
 void Render3d(t_Render3dInput input) {
-	glEnable(GL_TEXTURE_2D);
-	glCullFace(GL_BACK);
-	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
 
 	for (size_t i = 0; i < input.numTriangles; i++)

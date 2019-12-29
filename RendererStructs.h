@@ -44,7 +44,7 @@ typedef struct {
 
 
 typedef struct {
-	unsigned int noSpriteAlpha;
+	unsigned int useSpriteAlpha;
 	unsigned int smoothClose;
 	unsigned int smoothFar;
 	unsigned int translucencyFx; //1
@@ -81,7 +81,7 @@ typedef struct {
 
 typedef struct {
 	float x, y, z;
-	float oow;
+	float w;
 	float unk1;
 	float unk2;
 	float s, t;
@@ -143,6 +143,7 @@ typedef struct {
 		t_Render3dInput render3dInput;
 		t_AddTexture addTextureInput;
 		t_GetColorFormatInfoInput getColorFormatInfoInput;
+		unsigned int* removeTextureInput;
 	};
 } t_RasterizeHook;
 

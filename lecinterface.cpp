@@ -57,14 +57,14 @@ HWND __cdecl GetMainWindow() {
 
 int __cdecl Allocate(t_AllocateArgs *a1) {
 	if (IsWindow(hWnd)) {
-		int width = GetSystemMetrics(0);
-		int height = GetSystemMetrics(1);
+		int screenWidth = GetSystemMetrics(0);
+		int screenHeight = GetSystemMetrics(1);
 
 		currentDisplayMode.width = a1->width;
 		currentDisplayMode.height = a1->height;
 		currentDisplayMode.bpp = a1->bpp;
 
-		SetWindowPos(hWnd, HWND_TOP, 0, 0, a1->width, a1->height, 0);
+		SetWindowPos(hWnd, 0, screenWidth/2 - (a1->width/2), screenHeight/2 - (a1->height / 2), a1->width, a1->height, 0);
 		SetActiveWindow(hWnd);
 		SetFocus(hWnd);
 
@@ -121,43 +121,10 @@ int __cdecl UnlockBuffer(int a1, int a2) {
 int __cdecl PageFlip() {
 	DrawPixelBuffer();
 	VideoSwapBuffers();
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	memset(video_Buffer, 0, currentDisplayMode.width * currentDisplayMode.height);
 	Sleep(1);
 	return 0;
 }
-//
-//void GetColorFormatInfo(t_GetColorFormatInfoInput input) {
-//	t_UnkForNow v1;
-//	v1.initAs3 = 3;
-//	v1.bytesPerPixel = 5;
-//	v1.unk6 = 5;
-//	v1.unk9 = 3;
-//	v1.width = 1;
-//	v1.bitColorDepth = 16;
-//	v1.unk10 = 3;
-//	v1.unk4 = 5;
-//	v1.unk5 = 11;
-//	v1.unk3 = 6;
-//	v1.unk7 = 0;
-//
-//	t_GetColorFormatInfoResult* res = input.result;
-//	res->bytesPerPixel = v1.bytesPerPixel;
-//	res->field_4 = v1.unk3;
-//	res->field_8 = v1.unk4;
-//	if (v1.width == 1)
-//		res->field_C = 0;
-//	else
-//		res->field_C = v1.unk11;
-//	res->field_10 = v1.unk5;
-//	res->field_14 = v1.unk6;
-//	res->field_18 = v1.unk7;
-//	if (v1.width == 1)
-//		res->field_1C = 0;
-//	else
-//		res->field_1C = v1.unk12;
-//
-//}
 
 int __cdecl RasterizerHook(t_RasterizeHook* data) {
 	switch (data->action)
@@ -182,21 +149,17 @@ int __cdecl RasterizerHook(t_RasterizeHook* data) {
 		glClear(GL_COLOR_BUFFER_BIT);
 		return 0;
 	case 6: // Allocate texture	{
-		AllocateTexture(data->allocateTextureQuery);
-		//data->allocateTextureQuery.buffer = (unsigned int*)10;
-		return 0;
-		//return AllocateTexture(&data->allocateTextureQuery);
+		return AllocateTexture(data->allocateTextureQuery);
 	case 7: // Add texture
 		return AddTexture(data->addTextureInput);
-	case 8: // Render vertices and triangles
+	case 8: // Render vertices and triangles	
 	{	
 		do3d = true;
-
 		Render3d(data->render3dInput);
 		return 0;
 	}
 	case 9: // Remove texture
-		return 0;
+		return RemoveTexture(data->removeTextureInput);
 	case 10: // Get color format info
 		//GetColorFormatInfo(data->getColorFormatInfoInput);
 		return 0;
@@ -228,7 +191,7 @@ int __cdecl RasterizerHook(t_RasterizeHook* data) {
 		return 0;
 	}
 	case 13: // Get options
-		data->renderOptions.noSpriteAlpha = 1;
+		data->renderOptions.useSpriteAlpha = 1;
 		data->renderOptions.smoothClose = 1;
 		data->renderOptions.smoothFar = 1;
 		data->renderOptions.translucencyFx = 0;
@@ -236,7 +199,7 @@ int __cdecl RasterizerHook(t_RasterizeHook* data) {
 		data->renderOptions.smallTextures = 0;
 		data->renderOptions.smallSprites = 0;
 		data->renderOptions.notAllSpriteDirections = 0;
-		data->renderOptions.singlePassRender = 0;
+		data->renderOptions.singlePassRender = 1;
 		data->renderOptions.hardwareOverlays = 0;
 		data->renderOptions.noGun = 0;
 		OutputDebugString("Rasterizer: Get options\n");
