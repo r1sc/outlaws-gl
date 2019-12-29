@@ -103,14 +103,14 @@ int __cdecl GetDisplayMode(t_DisplayMode **a1) {
 	return 0;
 }
 
-int __cdecl LockBuffer(int a1, t_LockBufferArgs *a2) {
+int __cdecl LockBuffer(int a1, t_LockBufferArgs *a2) {	
 	a2->pixelData = video_Buffer;
 	a2->stride = currentDisplayMode.width;
 	a2->bytesPerPixel = 1;
 	a2->dword14 = 0;
 	a2->dword10 = 0;
 	a2->bufferWidth = currentDisplayMode.width;
-	a2->height = a2->bufferHeight = currentDisplayMode.height;
+	a2->height = a2->bufferHeight = currentDisplayMode.height;	
 	return 0;
 }
 
@@ -122,50 +122,42 @@ int __cdecl PageFlip() {
 	DrawPixelBuffer();
 	VideoSwapBuffers();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	memset(video_Buffer, 0, currentDisplayMode.width * currentDisplayMode.height);
 	Sleep(1);
 	return 0;
 }
-
-void glhFrustumf2(float *matrix, float left, float right, float bottom, float top,
-	float znear, float zfar)
-{
-	float temp, temp2, temp3, temp4;
-	temp = 2.0 * znear;
-	temp2 = right - left;
-	temp3 = top - bottom;
-	temp4 = zfar - znear;
-	matrix[0] = temp / temp2;
-	matrix[1] = 0.0;
-	matrix[2] = 0.0;
-	matrix[3] = 0.0;
-	matrix[4] = 0.0;
-	matrix[5] = temp / temp3;
-	matrix[6] = 0.0;
-	matrix[7] = 0.0;
-	matrix[8] = (right + left) / temp2;
-	matrix[9] = (top + bottom) / temp3;
-	matrix[10] = (-zfar - znear) / temp4;
-	matrix[11] = -1.0;
-	matrix[12] = 0.0;
-	matrix[13] = 0.0;
-	matrix[14] = (-temp * zfar) / temp4;
-	matrix[15] = 0.0;
-}
-
-#define M_PI 3.14159265358979323846264338327950288
-void glhPerspectivef2(float *matrix, float fovyInDegrees, float aspectRatio,
-	float znear, float zfar)
-{
-	float ymax, xmax;
-	float temp, temp2, temp3, temp4;
-	ymax = znear * tanf(fovyInDegrees * M_PI / 360.0);
-	// ymin = -ymax;
-	// xmin = -ymax * aspectRatio;
-	xmax = ymax * aspectRatio;
-	glhFrustumf2(matrix, -xmax, xmax, -ymax, ymax, znear, zfar);
-}
-
-float matrix[4 * 4];
+//
+//void GetColorFormatInfo(t_GetColorFormatInfoInput input) {
+//	t_UnkForNow v1;
+//	v1.initAs3 = 3;
+//	v1.bytesPerPixel = 5;
+//	v1.unk6 = 5;
+//	v1.unk9 = 3;
+//	v1.width = 1;
+//	v1.bitColorDepth = 16;
+//	v1.unk10 = 3;
+//	v1.unk4 = 5;
+//	v1.unk5 = 11;
+//	v1.unk3 = 6;
+//	v1.unk7 = 0;
+//
+//	t_GetColorFormatInfoResult* res = input.result;
+//	res->bytesPerPixel = v1.bytesPerPixel;
+//	res->field_4 = v1.unk3;
+//	res->field_8 = v1.unk4;
+//	if (v1.width == 1)
+//		res->field_C = 0;
+//	else
+//		res->field_C = v1.unk11;
+//	res->field_10 = v1.unk5;
+//	res->field_14 = v1.unk6;
+//	res->field_18 = v1.unk7;
+//	if (v1.width == 1)
+//		res->field_1C = 0;
+//	else
+//		res->field_1C = v1.unk12;
+//
+//}
 
 int __cdecl RasterizerHook(t_RasterizeHook* data) {
 	switch (data->action)
@@ -190,78 +182,82 @@ int __cdecl RasterizerHook(t_RasterizeHook* data) {
 		glClear(GL_COLOR_BUFFER_BIT);
 		return 0;
 	case 6: // Allocate texture	{
-		AllocateTexture(&data->allocateTextureQuery);
+		AllocateTexture(data->allocateTextureQuery);
 		//data->allocateTextureQuery.buffer = (unsigned int*)10;
 		return 0;
 		//return AllocateTexture(&data->allocateTextureQuery);
 	case 7: // Add texture
-		return 0;
+		return AddTexture(data->addTextureInput);
 	case 8: // Render vertices and triangles
 	{	
 		do3d = true;
 
-		unsigned int numVertices = data->ary[0];
-		float *vertices = (float*)data->ary[1];
-		unsigned int numTriangles = data->ary[2];
-		unsigned int *triangles = (unsigned int*)data->ary[3];
-				
-
-		glDisable(GL_TEXTURE_2D);
-		glColor3f(1, 1, 1);
-		glCullFace(GL_FRONT);
-		glEnable(GL_CULL_FACE);
-		glEnable(GL_DEPTH_TEST);
-		
-		glBegin(GL_TRIANGLES);
-		for (size_t i = 0; i < numTriangles; i++)
-		{
-			unsigned int i1 = triangles[i * 5 ];
-			unsigned int i2 = triangles[i * 5 + 1];
-			unsigned int i3 = triangles[i * 5 + 2];
-			unsigned int ptr = triangles[i * 5 + 4];
-
-			int r = (ptr & 0xFF000000) >> 24;
-			int g = (ptr & 0xFF0000) >> 16;
-			int b = (ptr & 0xFF00) >> 8;
-			
-			float *v1 = &vertices[i1 * 8];
-			float *v2 = &vertices[i2 * 8];
-			float *v3 = &vertices[i3 * 8];
-
-			glColor3f(r / 255.0f, g / 255.0f, b / 255.0f);
-
-			glVertex3f(v1[0], v1[1], -v1[2]);
-			glVertex3f(v2[0], v2[1], -v2[2]);
- 			glVertex3f(v3[0], v3[1], -v3[2]);
-		}
-		glEnd();
+		Render3d(data->render3dInput);
 		return 0;
 	}
 	case 9: // Remove texture
 		return 0;
-	case 10: // Unk 1
+	case 10: // Get color format info
+		//GetColorFormatInfo(data->getColorFormatInfoInput);
 		return 0;
 	case 11: // Unk 2
 		return 0;
 	case 12: // Set palette
+	{
+		float palette_r[256];
+		float palette_g[256];
+		float palette_b[256];
+		float palette_a[256];
+
+		unsigned char* palette = (unsigned char*)data->ary[0];
+
+		for (int i = 0; i < 256; i++)
+		{
+			palette_r[i] = palette[i * 4 + 0] / 255.0f;
+			palette_g[i] = palette[i * 4 + 1] / 255.0f;
+			palette_b[i] = palette[i * 4 + 2] / 255.0f;
+			palette_a[i] = i == 0 ? 0 : 1.0f;
+		}
+
+		glPixelTransferi(GL_MAP_COLOR, TRUE);
+		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+		glPixelMapfv(GL_PIXEL_MAP_I_TO_R, 256, palette_r);
+		glPixelMapfv(GL_PIXEL_MAP_I_TO_G, 256, palette_g);
+		glPixelMapfv(GL_PIXEL_MAP_I_TO_B, 256, palette_b);
+		glPixelMapfv(GL_PIXEL_MAP_I_TO_A, 256, palette_a);
 		return 0;
+	}
 	case 13: // Get options
+		data->renderOptions.noSpriteAlpha = 1;
+		data->renderOptions.smoothClose = 1;
+		data->renderOptions.smoothFar = 1;
+		data->renderOptions.translucencyFx = 0;
+		data->renderOptions.translucentWater = 0;
+		data->renderOptions.smallTextures = 0;
+		data->renderOptions.smallSprites = 0;
+		data->renderOptions.notAllSpriteDirections = 0;
+		data->renderOptions.singlePassRender = 0;
+		data->renderOptions.hardwareOverlays = 0;
+		data->renderOptions.noGun = 0;
 		OutputDebugString("Rasterizer: Get options\n");
 		return 0;
 	}
 	return 1;
 }
 
-float palette_r[256];
-float palette_g[256];
-float palette_b[256];
 
 int __cdecl SetPaletteRange(unsigned char *a1, int a2, int numPaletteEntries) {
+	float palette_r[256];
+	float palette_g[256];
+	float palette_b[256];
+	float palette_a[256];
+
 	for (int i = 0; i < numPaletteEntries; i++)
 	{
 		palette_r[i] = a1[i * 4 + 0] / 255.0f;
 		palette_g[i] = a1[i * 4 + 1] / 255.0f;
 		palette_b[i] = a1[i * 4 + 2] / 255.0f;
+		palette_a[i] = 1.0f;
 	}
 
 	glPixelTransferi(GL_MAP_COLOR, TRUE);
@@ -269,6 +265,7 @@ int __cdecl SetPaletteRange(unsigned char *a1, int a2, int numPaletteEntries) {
 	glPixelMapfv(GL_PIXEL_MAP_I_TO_R, 256, palette_r);
 	glPixelMapfv(GL_PIXEL_MAP_I_TO_G, 256, palette_g);
 	glPixelMapfv(GL_PIXEL_MAP_I_TO_B, 256, palette_b);
+	glPixelMapfv(GL_PIXEL_MAP_I_TO_A, 256, palette_a);
 
 	return 0;
 }

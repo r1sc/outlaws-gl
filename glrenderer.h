@@ -15,5 +15,6 @@ void DrawPixelBuffer();
 void VideoSwapBuffers();
 void ResetVideo();
 
-int AllocateTexture(t_AllocateTextureQuery *t);
-int AddTexture(int t);
+int AllocateTexture(t_AllocateTextureQuery t);
+int AddTexture(t_AddTexture input);
+void Render3d(t_Render3dInput input);
