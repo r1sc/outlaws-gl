@@ -110,13 +110,13 @@ int AllocateTexture(t_AllocateTextureQuery input) {
 	allocTexture.height = input.alloc->height;
 	allocTexture.bytesPerPixel = input.alloc->bytesPerPixel;
 	allocTexture.buffer = scratchBuffer;
-
+	   	
 	input.result = &allocTexture;
 	return 0;
 }
 
-GLuint lastTexture;
 int AddTexture(t_AddTexture input) {
+	
 	for (size_t i = 0; i < 256; i++)
 	{
 		GLuint index = (nextFree + i) % 256;
@@ -128,7 +128,7 @@ int AddTexture(t_AddTexture input) {
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-			lastTexture = index;
+			*input.textureTag = index;
 			usedTextures[index] = true;
 			nextFree = (index + 1) % 256;
 			return index;
@@ -138,64 +138,58 @@ int AddTexture(t_AddTexture input) {
 	return 0;
 }
 
-void drawVertex(float* v) {
-	float oow = v[3];
-	float w =  oow;
-	float sow = v[6];
-	float tow = v[7];
+void drawVertex(t_Vertex* v) {
+	float oow = v->oow;
+	float w =  1.0f / v->z;
+	float sow = v->s;
+	float tow = v->t;
+
+
+	if (v->x == 0) {
+		sow = sow * oow;
+		tow = tow * oow;
+		v->x = 1;
+	}
+
 	float s = w * sow;
 	float t = w * tow;
 
-	glTexCoord2f(s, t);
-	glVertex3f(v[0], v[1], -v[2]);
+		
+	glTexCoord2f(v->s, v->t);
+	glVertex3f(v->x, v->y, -v->z);
 }
 
 void Render3d(t_Render3dInput input) {
-	/*glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, textures[120]);
-
-	glBegin(GL_QUADS);
-	glTexCoord2i(0, 0);
-	glVertex2i(0, 0);
-	glTexCoord2i(1, 0);
-	glVertex2i(currentDisplayMode.width, 0);
-	glTexCoord2i(1, 1);
-	glVertex2i(currentDisplayMode.width, currentDisplayMode.height);
-	glTexCoord2i(0, 1);
-	glVertex2i(0, currentDisplayMode.height);
-	glEnd();*/
-
 	glEnable(GL_TEXTURE_2D);
 	glCullFace(GL_BACK);
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
-	glBindTexture(GL_TEXTURE_2D, textures[lastTexture]);
 
-	glBegin(GL_TRIANGLES);
 	for (size_t i = 0; i < input.numTriangles; i++)
 	{
-		unsigned int i1 = input.triangles[i * 5];
-		unsigned int i2 = input.triangles[i * 5 + 1];
-		unsigned int i3 = input.triangles[i * 5 + 2];
-		unsigned int flags = input.triangles[i * 5 + 4];
+		t_Triangle triangle = input.triangles[i];
+		t_Vertex v1 = input.vertices[triangle.i1];
+		t_Vertex v2 = input.vertices[triangle.i2];
+		t_Vertex v3 = input.vertices[triangle.i3];
 
-		float* v1 = &input.vertices[i1 * 8];
-		float* v2 = &input.vertices[i2 * 8];
-		float* v3 = &input.vertices[i3 * 8];
-
-		if (flags & 0x1000)
+		unsigned int f = ((unsigned int*)input.vertices)[triangle.i1 * 8 + 4];
+		unsigned int hej = (f & 0xFF3FFFFF) >> 22;
+		
+		if (triangle.flags & 0x1000)
 			glDepthFunc(GL_LESS);
 		else
 			glDepthFunc(GL_ALWAYS);
 
-		if (flags & 0x2000)
+		if (triangle.flags & 0x2000)
 			glDepthMask(GL_TRUE);
 		else
 			glDepthMask(GL_FALSE);
-
-		drawVertex(v3);
-		drawVertex(v2);
-		drawVertex(v1);
+		
+		glBindTexture(GL_TEXTURE_2D, textures[triangle.textureTag]);
+		glBegin(GL_TRIANGLES);
+		drawVertex(&v3);
+		drawVertex(&v2);
+		drawVertex(&v1);
+		glEnd();
 	}
-	glEnd();
 }

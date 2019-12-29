@@ -71,19 +71,34 @@ typedef struct {
 	void* result;
 } t_AllocateTextureQuery;
 
+typedef struct {
+	unsigned int i1;
+	unsigned int i2;
+	unsigned int i3;
+	unsigned int textureTag;
+	unsigned int flags;
+} t_Triangle;
+
+typedef struct {
+	float x, y, z;
+	float oow;
+	float unk1;
+	float unk2;
+	float s, t;
+} t_Vertex;
 
 typedef struct {
 	unsigned int numVertices;
-	float* vertices;
+	t_Vertex* vertices;
 	unsigned int numTriangles;
-	unsigned int* triangles;
+	t_Triangle* triangles;
 } t_Render3dInput;
 
 
 typedef struct {
 	unsigned int textureNumber;
 	void* tag;
-	unsigned char* pixelData;
+	unsigned int* textureTag;
 } t_AddTexture;
 
 typedef struct {
