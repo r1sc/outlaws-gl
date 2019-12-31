@@ -55,7 +55,7 @@ typedef struct {
 	unsigned int notAllSpriteDirections;
 	unsigned int singlePassRender; // 0
 	unsigned int hardwareOverlays; // 1
-	unsigned int noGun; // 1
+	unsigned int hardwareDepthBuffer; // 1
 } t_RenderOptions;
 
 typedef struct {
@@ -82,7 +82,7 @@ typedef struct {
 typedef struct {
 	float x, y, z;
 	float w;
-	float unk1;
+	unsigned int color;
 	float unk2;
 	float s, t;
 } t_Vertex;

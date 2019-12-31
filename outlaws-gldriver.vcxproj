@@ -72,7 +72,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>C:\OutDemo\</OutDir>
+    <OutDir>C:\spel\outlaws\</OutDir>
     <TargetName>lecogl</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -158,11 +158,13 @@
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="glrenderer.cpp" />
     <ClCompile Include="lecinterface.cpp" />
+    <ClCompile Include="settings.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="glrenderer.h" />
     <ClInclude Include="RendererStructs.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="settings.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="outlaws-gldriver.rc" />

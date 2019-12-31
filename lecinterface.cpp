@@ -1,7 +1,9 @@
-#include "RendererStructs.h"
-#include "glrenderer.h"
 #include <stdio.h>
 #include <math.h>
+
+#include "RendererStructs.h"
+#include "glrenderer.h"
+#include "settings.h"
 
 extern HINSTANCE hInstance;
 HWND hWnd;
@@ -13,8 +15,10 @@ int __cdecl Startup() {
 }
 
 int __cdecl Initialize(t_InitializeArgs *a1) {
+	ReadSettings();
+
 	if (a1->hWnd) {
-		a1->isFullscreen = 0;
+		a1->isFullscreen = fullscreen;
 		hWnd = a1->hWnd;
 		SetPixelFormatAndCreateContext(hWnd);
 	}
@@ -63,8 +67,10 @@ int __cdecl Allocate(t_AllocateArgs *a1) {
 		currentDisplayMode.width = a1->width;
 		currentDisplayMode.height = a1->height;
 		currentDisplayMode.bpp = a1->bpp;
+		
+		
 
-		SetWindowPos(hWnd, 0, screenWidth/2 - (a1->width/2), screenHeight/2 - (a1->height / 2), a1->width, a1->height, 0);
+		SetWindowPos(hWnd, 0, screenWidth/2 - (windowResolutionWidth/2), screenHeight/2 - (windowResolutionHeight / 2), windowResolutionWidth, windowResolutionHeight, SWP_SHOWWINDOW);
 		SetActiveWindow(hWnd);
 		SetFocus(hWnd);
 
@@ -75,13 +81,13 @@ int __cdecl Allocate(t_AllocateArgs *a1) {
 }
 
 int __cdecl Free() {
-	free(video_Buffer);
+	//free(video_Buffer);
 	return 0;
 }
 
 t_DisplayMode displayModes[2] = {
-	{1024,768,16,0,{0}},
-	{800,600,16,0,{0}}
+	{640,480,16,0,{0}},
+	{640,360,16,0,{0}}
 };
 signed int __cdecl GetDisplayModeList(int *numModes, t_DisplayMode **modes) {
 	*numModes = 2;
@@ -121,7 +127,6 @@ int __cdecl UnlockBuffer(int a1, int a2) {
 int __cdecl PageFlip() {
 	DrawPixelBuffer();
 	VideoSwapBuffers();
-	memset(video_Buffer, 0, currentDisplayMode.width * currentDisplayMode.height);
 	Sleep(1);
 	return 0;
 }
@@ -161,7 +166,6 @@ int __cdecl RasterizerHook(t_RasterizeHook* data) {
 	case 9: // Remove texture
 		return RemoveTexture(data->removeTextureInput);
 	case 10: // Get color format info
-		//GetColorFormatInfo(data->getColorFormatInfoInput);
 		return 0;
 	case 11: // Unk 2
 		return 0;
@@ -194,14 +198,14 @@ int __cdecl RasterizerHook(t_RasterizeHook* data) {
 		data->renderOptions.useSpriteAlpha = 1;
 		data->renderOptions.smoothClose = 1;
 		data->renderOptions.smoothFar = 1;
-		data->renderOptions.translucencyFx = 0;
-		data->renderOptions.translucentWater = 0;
+		data->renderOptions.translucencyFx = 1;
+		data->renderOptions.translucentWater = 1;
 		data->renderOptions.smallTextures = 0;
 		data->renderOptions.smallSprites = 0;
 		data->renderOptions.notAllSpriteDirections = 0;
 		data->renderOptions.singlePassRender = 1;
-		data->renderOptions.hardwareOverlays = 0;
-		data->renderOptions.noGun = 0;
+		data->renderOptions.hardwareOverlays = 1;
+		data->renderOptions.hardwareDepthBuffer = 1;
 		OutputDebugString("Rasterizer: Get options\n");
 		return 0;
 	}
@@ -242,7 +246,7 @@ int __cdecl Terminate() {
 }
 
 int __cdecl BlankBuffers(int a1, int a2) {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	memset(video_Buffer, 0, currentDisplayMode.width * currentDisplayMode.height);
 	return 1;
 }
 
