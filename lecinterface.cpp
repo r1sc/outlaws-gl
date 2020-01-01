@@ -5,7 +5,6 @@
 #include "glrenderer.h"
 #include "settings.h"
 
-extern HINSTANCE hInstance;
 HWND hWnd;
 t_DisplayMode currentDisplayMode;
 
