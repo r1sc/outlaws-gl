@@ -4,10 +4,9 @@
 #include <gl\GL.h>
 #include "RendererStructs.h"
 
-extern unsigned char *video_Buffer;
-extern unsigned int textureBytesPerPixel;
+extern unsigned char *videoBuffer;
 extern t_DisplayMode currentDisplayMode;
-extern bool do3d;
+extern bool rendering3d;
 
 void SetPixelFormatAndCreateContext(HWND hWnd);
 void AllocatePixelBuffer(unsigned int width, unsigned int height, int bytesPerPixel);
@@ -15,7 +14,9 @@ void DrawPixelBuffer();
 void VideoSwapBuffers();
 void ResetVideo();
 
-int AllocateTexture(t_AllocateTextureQuery t);
-int AddTexture(t_AddTexture input);
+int AllocateTexture(t_AllocateTextureInOut t);
+int AddTexture(t_AddTextureInput input);
 int RemoveTexture(unsigned int* textureTag);
 void Render3d(t_Render3dInput input);
+void OpenRenderer();
+void CloseRenderer();

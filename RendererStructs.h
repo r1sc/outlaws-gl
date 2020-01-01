@@ -23,7 +23,6 @@ typedef struct {
 	unsigned int bpp;
 } t_AllocateArgs;
 
-#pragma pack(push, 1)
 typedef struct
 {
 	unsigned char* pixelData;
@@ -35,7 +34,6 @@ typedef struct
 	unsigned int bufferWidth;
 	unsigned int bufferHeight;
 } t_LockBufferArgs;
-#pragma pack(pop)
 
 typedef struct {
 	HWND hWnd;
@@ -56,7 +54,7 @@ typedef struct {
 	unsigned int singlePassRender; // 0
 	unsigned int hardwareOverlays; // 1
 	unsigned int hardwareDepthBuffer; // 1
-} t_RenderOptions;
+} t_RenderOptionsOutput;
 
 typedef struct {
 	unsigned char* buffer;
@@ -69,12 +67,12 @@ typedef struct {
 	unsigned int val;
 	t_AllocateTexture* alloc;
 	void* result;
-} t_AllocateTextureQuery;
+} t_AllocateTextureInOut;
 
 typedef struct {
-	unsigned int i1;
-	unsigned int i2;
-	unsigned int i3;
+	unsigned int vertexIndex1;
+	unsigned int vertexIndex2;
+	unsigned int vertexIndex3;
 	unsigned int textureTag;
 	unsigned int flags;
 } t_Triangle;
@@ -83,7 +81,7 @@ typedef struct {
 	float x, y, z;
 	float w;
 	unsigned int color;
-	float unk2;
+	float unk;
 	float s, t;
 } t_Vertex;
 
@@ -94,28 +92,11 @@ typedef struct {
 	t_Triangle* triangles;
 } t_Render3dInput;
 
-
 typedef struct {
 	unsigned int textureNumber;
 	void* tag;
 	unsigned int* textureTag;
-} t_AddTexture;
-
-typedef struct {
-	int width;
-	int bitColorDepth;
-	int bytesPerPixel;
-	int unk3;
-	int unk4;
-	int unk5;
-	int unk6;
-	int unk7;
-	int initAs3;
-	int unk9;
-	int unk10;
-	int unk11;
-	int unk12;
-} t_UnkForNow;
+} t_AddTextureInput;
 
 typedef struct {
 	int bytesPerPixel;
@@ -133,17 +114,33 @@ typedef struct {
 	t_GetColorFormatInfoResult* result;
 } t_GetColorFormatInfoInput;
 
+enum RasterizerHookAction {
+	STARTUP = 0,
+	SHUTDOWN = 1,
+	OPEN_DEVICE = 2,
+	CLOSE_DEVICE = 3,
+	CLEAR_Z = 4,
+	CLEAR_VIEWPORT = 5,
+	ALLOCATE_TEXTURE = 6,
+	ADD_TEXTURE = 7,
+	RENDER = 8,
+	REMOVE_TEXTURE = 9,
+	GET_COLOR_FORMAT_INFO = 10,
+	UNK_1 = 11,
+	SET_PALETTE = 12,
+	GET_OPTIONS = 13
+};
+
 typedef struct {
-	unsigned int action;
+	RasterizerHookAction action;
 	union {
-		t_RenderOptions renderOptions;
-		t_AllocateTextureQuery allocateTextureQuery;
-		unsigned int ary[];
-		unsigned char data[];
+		t_RenderOptionsOutput renderOptions;
+		t_AllocateTextureInOut allocateTextureInOut;
 		t_Render3dInput render3dInput;
-		t_AddTexture addTextureInput;
+		t_AddTextureInput addTextureInput;
 		t_GetColorFormatInfoInput getColorFormatInfoInput;
 		unsigned int* removeTextureInput;
+		unsigned int* paletteInput;
 	};
 } t_RasterizeHook;
 

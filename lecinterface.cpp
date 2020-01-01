@@ -9,8 +9,7 @@ extern HINSTANCE hInstance;
 HWND hWnd;
 t_DisplayMode currentDisplayMode;
 
-int __cdecl Startup() {
-	
+int __cdecl Startup() {	
 	return 0;
 }
 
@@ -38,8 +37,6 @@ int __cdecl GDIPause() {
 }
 
 int __cdecl GDIResume() {
-	
-	//SetWindowPos(hWnd, HWND_TOP, 0, 0, 640, 480, SWP_NOOWNERZORDER);
 	return 0;
 }
 
@@ -63,13 +60,23 @@ int __cdecl Allocate(t_AllocateArgs *a1) {
 	if (IsWindow(hWnd)) {
 		int screenWidth = GetSystemMetrics(0);
 		int screenHeight = GetSystemMetrics(1);
-
-		currentDisplayMode.width = a1->width;
-		currentDisplayMode.height = a1->height;
-		currentDisplayMode.bpp = a1->bpp;
 		
-		
+		DWORD dwStyle, dwStyleEx;
 
+		if (fullscreen) {
+			windowResolutionWidth = screenWidth;
+			windowResolutionHeight = screenHeight;
+			dwStyle = WS_POPUP | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
+			dwStyleEx = WS_EX_APPWINDOW;
+			ShowCursor(FALSE);
+		}
+		else {
+			dwStyle = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
+			dwStyleEx = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
+		}
+
+		SetWindowLongPtr(hWnd, GWL_STYLE, dwStyle);
+		SetWindowLongPtr(hWnd, GWL_EXSTYLE, dwStyleEx);
 		SetWindowPos(hWnd, 0, screenWidth/2 - (windowResolutionWidth/2), screenHeight/2 - (windowResolutionHeight / 2), windowResolutionWidth, windowResolutionHeight, SWP_SHOWWINDOW);
 		SetActiveWindow(hWnd);
 		SetFocus(hWnd);
@@ -81,7 +88,6 @@ int __cdecl Allocate(t_AllocateArgs *a1) {
 }
 
 int __cdecl Free() {
-	//free(video_Buffer);
 	return 0;
 }
 
@@ -99,7 +105,7 @@ int __cdecl SetDisplayMode(t_DisplayMode *displayMode) {
 	currentDisplayMode.width = displayMode->width;
 	currentDisplayMode.height = displayMode->height;
 	currentDisplayMode.bpp = displayMode->bpp;
-
+	
 	ResetVideo();
 	return 0;
 }
@@ -110,7 +116,7 @@ int __cdecl GetDisplayMode(t_DisplayMode **a1) {
 }
 
 int __cdecl LockBuffer(int a1, t_LockBufferArgs *a2) {	
-	a2->pixelData = video_Buffer;
+	a2->pixelData = videoBuffer;
 	a2->stride = currentDisplayMode.width;
 	a2->bytesPerPixel = 1;
 	a2->dword14 = 0;
@@ -121,80 +127,91 @@ int __cdecl LockBuffer(int a1, t_LockBufferArgs *a2) {
 }
 
 int __cdecl UnlockBuffer(int a1, int a2) {
+	if (!rendering3d) {
+		DrawPixelBuffer();
+		VideoSwapBuffers();
+	}
 	return 0;
 }
 
 int __cdecl PageFlip() {
-	DrawPixelBuffer();
-	VideoSwapBuffers();
-	Sleep(1);
+	if (rendering3d) {
+		DrawPixelBuffer();
+		VideoSwapBuffers();
+		memset(videoBuffer, 0, currentDisplayMode.width * currentDisplayMode.height);
+		glClear(GL_DEPTH_BUFFER_BIT);
+	}
+	return 0;
+}
+
+int __cdecl SetPaletteRange(unsigned int* palette, int a2, int numPaletteEntries) {
+	float palette_r[256];
+	float palette_g[256];
+	float palette_b[256];
+	float palette_a[256];
+
+	for (int i = 0; i < numPaletteEntries; i++)
+	{
+		palette_b[i] = ((palette[i] >> 16) & 0xFF) / 255.0f;
+		palette_g[i] = ((palette[i] >> 8) & 0xFF) / 255.0f;
+		palette_r[i] = (palette[i] & 0xFF) / 255.0f;
+		palette_a[i] = i == 0 ? 0 : 1.0f;
+	}
+
+	glPixelTransferi(GL_MAP_COLOR, TRUE);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glPixelMapfv(GL_PIXEL_MAP_I_TO_R, 256, palette_r);
+	glPixelMapfv(GL_PIXEL_MAP_I_TO_G, 256, palette_g);
+	glPixelMapfv(GL_PIXEL_MAP_I_TO_B, 256, palette_b);
+	glPixelMapfv(GL_PIXEL_MAP_I_TO_A, 256, palette_a);
+
 	return 0;
 }
 
 int __cdecl RasterizerHook(t_RasterizeHook* data) {
 	switch (data->action)
 	{
-	case 0:	// Startup
+	case RasterizerHookAction::STARTUP:
 		OutputDebugString("Rasterizer: Startup\n");
 		return 0;
-	case 1: // Shutdown
+	case RasterizerHookAction::SHUTDOWN:
 		OutputDebugString("Rasterizer: Shutdown\n");
 		return 0;
-	case 2: // Open
+	case RasterizerHookAction::OPEN_DEVICE:		
 		OutputDebugString("Rasterizer: Open\n");
-
+		OpenRenderer();
 		return 0;
-	case 3: // Close
+	case RasterizerHookAction::CLOSE_DEVICE:
 		OutputDebugString("Rasterizer: Close\n");
+		CloseRenderer();
 		return 0;
-	case 4: // Clear z-buffer
+	case RasterizerHookAction::CLEAR_Z:
 		glClear(GL_DEPTH_BUFFER_BIT);
 		return 0;
-	case 5: // Clear viewport
+	case RasterizerHookAction::CLEAR_VIEWPORT:
 		glClear(GL_COLOR_BUFFER_BIT);
 		return 0;
-	case 6: // Allocate texture	{
-		return AllocateTexture(data->allocateTextureQuery);
-	case 7: // Add texture
+	case RasterizerHookAction::ALLOCATE_TEXTURE:
+		return AllocateTexture(data->allocateTextureInOut);
+	case RasterizerHookAction::ADD_TEXTURE:
 		return AddTexture(data->addTextureInput);
-	case 8: // Render vertices and triangles	
+	case RasterizerHookAction::RENDER:
 	{	
-		do3d = true;
 		Render3d(data->render3dInput);
 		return 0;
 	}
-	case 9: // Remove texture
+	case RasterizerHookAction::REMOVE_TEXTURE:
 		return RemoveTexture(data->removeTextureInput);
-	case 10: // Get color format info
+	case RasterizerHookAction::GET_COLOR_FORMAT_INFO:
 		return 0;
-	case 11: // Unk 2
+	case RasterizerHookAction::UNK_1:
 		return 0;
-	case 12: // Set palette
+	case RasterizerHookAction::SET_PALETTE:
 	{
-		float palette_r[256];
-		float palette_g[256];
-		float palette_b[256];
-		float palette_a[256];
-
-		unsigned char* palette = (unsigned char*)data->ary[0];
-
-		for (int i = 0; i < 256; i++)
-		{
-			palette_r[i] = palette[i * 4 + 0] / 255.0f;
-			palette_g[i] = palette[i * 4 + 1] / 255.0f;
-			palette_b[i] = palette[i * 4 + 2] / 255.0f;
-			palette_a[i] = i == 0 ? 0 : 1.0f;
-		}
-
-		glPixelTransferi(GL_MAP_COLOR, TRUE);
-		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-		glPixelMapfv(GL_PIXEL_MAP_I_TO_R, 256, palette_r);
-		glPixelMapfv(GL_PIXEL_MAP_I_TO_G, 256, palette_g);
-		glPixelMapfv(GL_PIXEL_MAP_I_TO_B, 256, palette_b);
-		glPixelMapfv(GL_PIXEL_MAP_I_TO_A, 256, palette_a);
+		SetPaletteRange(data->paletteInput, 0, 256);
 		return 0;
 	}
-	case 13: // Get options
+	case RasterizerHookAction::GET_OPTIONS:
 		data->renderOptions.useSpriteAlpha = 1;
 		data->renderOptions.smoothClose = 1;
 		data->renderOptions.smoothFar = 1;
@@ -212,31 +229,6 @@ int __cdecl RasterizerHook(t_RasterizeHook* data) {
 	return 1;
 }
 
-
-int __cdecl SetPaletteRange(unsigned char *a1, int a2, int numPaletteEntries) {
-	float palette_r[256];
-	float palette_g[256];
-	float palette_b[256];
-	float palette_a[256];
-
-	for (int i = 0; i < numPaletteEntries; i++)
-	{
-		palette_r[i] = a1[i * 4 + 0] / 255.0f;
-		palette_g[i] = a1[i * 4 + 1] / 255.0f;
-		palette_b[i] = a1[i * 4 + 2] / 255.0f;
-		palette_a[i] = 1.0f;
-	}
-
-	glPixelTransferi(GL_MAP_COLOR, TRUE);
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	glPixelMapfv(GL_PIXEL_MAP_I_TO_R, 256, palette_r);
-	glPixelMapfv(GL_PIXEL_MAP_I_TO_G, 256, palette_g);
-	glPixelMapfv(GL_PIXEL_MAP_I_TO_B, 256, palette_b);
-	glPixelMapfv(GL_PIXEL_MAP_I_TO_A, 256, palette_a);
-
-	return 0;
-}
-
 int __cdecl Shutdown() {
 	return 0;
 }
@@ -246,7 +238,7 @@ int __cdecl Terminate() {
 }
 
 int __cdecl BlankBuffers(int a1, int a2) {
-	memset(video_Buffer, 0, currentDisplayMode.width * currentDisplayMode.height);
+	memset(videoBuffer, 0, currentDisplayMode.width * currentDisplayMode.height);
 	return 1;
 }
 
