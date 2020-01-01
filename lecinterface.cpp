@@ -37,6 +37,8 @@ int __cdecl GDIPause() {
 }
 
 int __cdecl GDIResume() {
+	CloseRenderer();
+	OpenRenderer();
 	return 0;
 }
 
@@ -91,12 +93,14 @@ int __cdecl Free() {
 	return 0;
 }
 
-t_DisplayMode displayModes[2] = {
+t_DisplayMode displayModes[4] = {
+	{1024,576,16,0,{0}},
+	{1024,768,16,0,{0}},
 	{640,480,16,0,{0}},
 	{640,360,16,0,{0}}
 };
 signed int __cdecl GetDisplayModeList(int *numModes, t_DisplayMode **modes) {
-	*numModes = 2;
+	*numModes = 4;
 	*modes = displayModes;
 	return 0;
 }
@@ -128,7 +132,7 @@ int __cdecl LockBuffer(int a1, t_LockBufferArgs *a2) {
 
 int __cdecl UnlockBuffer(int a1, int a2) {
 	if (!rendering3d) {
-		DrawPixelBuffer();
+		DrawPixelBuffer(false);
 		VideoSwapBuffers();
 	}
 	return 0;
@@ -136,10 +140,10 @@ int __cdecl UnlockBuffer(int a1, int a2) {
 
 int __cdecl PageFlip() {
 	if (rendering3d) {
-		DrawPixelBuffer();
+		DrawPixelBuffer(true);
 		VideoSwapBuffers();
 		memset(videoBuffer, 0, currentDisplayMode.width * currentDisplayMode.height);
-		glClear(GL_DEPTH_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 	return 0;
 }

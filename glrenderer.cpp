@@ -85,15 +85,21 @@ void ResetVideo() {
 	glViewport(0, 0, windowResolutionWidth, windowResolutionHeight);
 }
 
-void DrawPixelBuffer() {
+void DrawPixelBuffer(bool useAlpha) {
 	glLoadIdentity();
 
 	glBindTexture(GL_TEXTURE_2D, video_ScreenTexture);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, currentDisplayMode.width, currentDisplayMode.height, GL_COLOR_INDEX, GL_UNSIGNED_BYTE, videoBuffer);
 
 	glDisable(GL_DEPTH_TEST);
-	glEnable(GL_ALPHA_TEST);
-	glAlphaFunc(GL_GREATER, 0);
+	if (useAlpha) {
+		glEnable(GL_ALPHA_TEST);
+		glAlphaFunc(GL_GREATER, 0);
+	}
+	else {
+		glDisable(GL_ALPHA_TEST);
+	}
+
 	glBegin(GL_QUADS);
 	glTexCoord2i(0, 0);
 	glVertex2i(0, 0);

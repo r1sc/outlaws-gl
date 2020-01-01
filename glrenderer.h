@@ -10,7 +10,7 @@ extern bool rendering3d;
 
 void SetPixelFormatAndCreateContext(HWND hWnd);
 void AllocatePixelBuffer(unsigned int width, unsigned int height, int bytesPerPixel);
-void DrawPixelBuffer();
+void DrawPixelBuffer(bool useAlpha);
 void VideoSwapBuffers();
 void ResetVideo();
 
