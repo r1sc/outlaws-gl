@@ -6,6 +6,7 @@
 unsigned int windowResolutionWidth = 640;
 unsigned int windowResolutionHeight = 480;
 bool fullscreen = false;
+bool linearInterpolation = true;
 
 void ReadSettings() {	
 	FILE* f = fopen("lecogl.conf", "r");
@@ -34,6 +35,9 @@ void ReadSettings() {
 			}
 			else if (strcmp(key, "fullscreen") == 0) {
 				fullscreen = value == 1;
+			}
+			else if (strcmp(key, "linearInterpolation") == 0) {
+				linearInterpolation = value == 1;
 			}
 		}
 	}

@@ -92,14 +92,23 @@ int __cdecl Free() {
 	return 0;
 }
 
-t_DisplayMode displayModes[4] = {
-	{1024,576,16,0,{0}},
-	{1024,768,16,0,{0}},
-	{640,480,16,0,{0}},
-	{640,360,16,0,{0}}
-};
+t_DisplayMode displayModes[255];
+
 signed int __cdecl GetDisplayModeList(int *numModes, t_DisplayMode **modes) {
-	*numModes = 4;
+	DEVMODE mode;
+
+	unsigned int i = 0;
+	unsigned int dm = 0;
+	while (EnumDisplaySettings(NULL, i++, &mode)) {
+		if (dm == 0 || (displayModes[dm-1].width != mode.dmPelsWidth || displayModes[dm-1].height != mode.dmPelsHeight)) {
+			displayModes[dm].width = mode.dmPelsWidth;
+			displayModes[dm].height = mode.dmPelsHeight;
+			displayModes[dm].bpp = 16;
+			dm++;
+		}
+	}
+
+	*numModes = dm;
 	*modes = displayModes;
 	return 0;
 }
@@ -223,7 +232,7 @@ int __cdecl RasterizerHook(t_RasterizeHook* data) {
 		data->renderOptions.smallTextures = 0;
 		data->renderOptions.smallSprites = 0;
 		data->renderOptions.notAllSpriteDirections = 0;
-		data->renderOptions.singlePassRender = 1;
+		data->renderOptions.singlePassRender = 0;
 		data->renderOptions.hardwareOverlays = 1;
 		data->renderOptions.hardwareDepthBuffer = 1;
 		OutputDebugString("Rasterizer: Get options\n");

@@ -1,3 +1,5 @@
+#include <dwmapi.h>
+
 #include "glrenderer.h"
 #include "settings.h"
 
@@ -24,7 +26,7 @@ void OpenRenderer() {
 void CloseRenderer() {
 	rendering3d = false;
 	memset(usedTextures, 0, NUM_TEXTURES);
-	nextFreeTextureIndex = -1;
+	nextFreeTextureIndex = 0;
 }
 
 void SetPixelFormatAndCreateContext(HWND hWnd) {
@@ -70,8 +72,8 @@ void ResetVideo() {
 
 	glBindTexture(GL_TEXTURE_2D, video_ScreenTexture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, currentDisplayMode.width, currentDisplayMode.height, 0, GL_COLOR_INDEX, GL_UNSIGNED_BYTE, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, linearInterpolation ? GL_LINEAR : GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, linearInterpolation ? GL_LINEAR : GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
@@ -83,6 +85,9 @@ void ResetVideo() {
 	glLoadIdentity();
 
 	glViewport(0, 0, windowResolutionWidth, windowResolutionHeight);
+	
+	glAlphaFunc(GL_GEQUAL, 0.5);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 void DrawPixelBuffer(bool useAlpha) {
@@ -94,9 +99,10 @@ void DrawPixelBuffer(bool useAlpha) {
 	glDisable(GL_DEPTH_TEST);
 	if (useAlpha) {
 		glEnable(GL_ALPHA_TEST);
-		glAlphaFunc(GL_GREATER, 0);
+		glEnable(GL_BLEND);		
 	}
 	else {
+		glDisable(GL_BLEND);
 		glDisable(GL_ALPHA_TEST);
 	}
 
@@ -113,6 +119,7 @@ void DrawPixelBuffer(bool useAlpha) {
 }
 
 void VideoSwapBuffers() {
+	DwmFlush();
 	SwapBuffers(hDC);
 }
 
@@ -149,8 +156,8 @@ int AddTexture(t_AddTextureInput input) {
 	if (foundFree) {
 		glBindTexture(GL_TEXTURE_2D, textures[index]);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, allocTexture.width, allocTexture.height, 0, GL_COLOR_INDEX, GL_UNSIGNED_BYTE, allocTexture.buffer);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, linearInterpolation ? GL_LINEAR : GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, linearInterpolation ? GL_LINEAR : GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
@@ -173,17 +180,21 @@ void drawVertex(t_Vertex* v) {
 	float s = v->s * v->w;
 	float t = v->t * v->w;
 			
+	float a = ((v->color >> 24) & 0xFF) / 255.0f;
 	float r = ((v->color >> 16) & 0xFF) / 255.0f;
 	float g = ((v->color >> 8) & 0xFF) / 255.0f;
 	float b = ((v->color) & 0xFF) / 255.0f;
-	glColor3f(r, g, b);
+	glColor4f(r, g, b, a);
 
 	glTexCoord4f(s, t, 0, v->w);
 	glVertex3f(v->x, v->y, -v->z);
 }
 
 void Render3d(t_Render3dInput input) {
+	glEnable(GL_ALPHA_TEST);
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glEnable(GL_CULL_FACE);
 
 	glLoadIdentity();
 	double sx = windowResolutionWidth / (double)currentDisplayMode.width;
@@ -196,7 +207,7 @@ void Render3d(t_Render3dInput input) {
 		t_Vertex v1 = input.vertices[triangle.vertexIndex1];
 		t_Vertex v2 = input.vertices[triangle.vertexIndex2];
 		t_Vertex v3 = input.vertices[triangle.vertexIndex3];
-		
+
 		if (triangle.flags & 0x1000)
 			glDepthFunc(GL_LEQUAL);
 		else
@@ -207,6 +218,24 @@ void Render3d(t_Render3dInput input) {
 		else
 			glDepthMask(GL_FALSE);
 
+		// Flags:
+		// 0x1000 - The level, not the background
+		// 0x2000
+		// 0x4000 - Sprites
+		if (triangle.flags & 0x4000) {
+			glCullFace(GL_FRONT);
+		}
+		else {
+			glCullFace(GL_BACK);
+		}
+
+		if (triangle.flags & 0xC00) {
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		}
+		else {
+			glBlendFunc(GL_ONE, GL_ZERO);
+		}
+
 		glBindTexture(GL_TEXTURE_2D, textures[triangle.textureTag]);
 		glBegin(GL_TRIANGLES);
 		drawVertex(&v3);
@@ -215,7 +244,9 @@ void Render3d(t_Render3dInput input) {
 		glEnd();
 	}
 
+	glDisable(GL_BLEND);
 	glDepthFunc(GL_LEQUAL);
 	glDepthMask(GL_TRUE);
+	glDisable(GL_CULL_FACE);
 	glColor3f(1, 1, 1);
 }
