@@ -11,7 +11,8 @@ The most interesting thing about the implementation is that it is actually a val
 ![Screenshot 2](Screenshots/ss2.png)
 
 ## Bugs / Not implemented
-- Translucency and blending not implemented yet (water effects etc.)
+- ~~Translucency and blending not implemented yet (water effects etc.)~~
+- Tinting effects not implemented yet.
 - Texture loading is still a bit of a mystery. There are situations where the texture cache gets corrupted and wrong textures are displayed on the wrong polygons. If you experience this after restarting a level or tabbing in/out of the game, you need to restart Outlaws.
 
 ## Installation and usage
